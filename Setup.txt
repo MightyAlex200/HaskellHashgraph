@@ -1,0 +1,10 @@
+let a0 = Event () (Nothing, Nothing) 0 'a' "a0"
+let b0 = Event () (Nothing, Nothing) 0 'b' "b0"
+let c0 = Event () (Nothing, Nothing) 0 'c' "c0"
+let d0 = Event () (Nothing, Nothing) 0 'd' "d0"
+let b1 = Event () (Just b0, Just a0) 1 'b' "b1"
+let a1 = Event () (Just a0, Just b1) 2 'a' "a1"
+let c1 = Event () (Just c0, Just a1) 3 'c' "c1"
+let d1 = Event () (Just d0, Just c1) 4 'd' "d1"
+let b2 = Event () (Just b1, Just d1) 5 'b' "b2"
+let myHashgraph = Hashgraph [a0, b0, c0, d0, b1, a1, c1, d1, b2] 4
