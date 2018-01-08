@@ -31,10 +31,12 @@ selfAncestor x y
 manyCreators :: (Eq i) => Hashgraph d t i s -> [Event d t i s] -> Bool
 manyCreators hashgraph s =
     let s' = nub $ map (\x -> creator x) s
-    in length s' > floor (supermajority hashgraph)
+        n = floor (supermajority hashgraph)
+    in length (take (n+1) s') > n
 
 -- Not sure if we need this one lol
 see :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> Bool
+-- see hashgraph x y = ancestor x y
 see hashgraph x y =
     let e = events hashgraph
     in  ancestor x y &&
@@ -60,12 +62,20 @@ eventRound hashgraph x = parentRound hashgraph x + (if roundInc hashgraph x then
 
 roundInc :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Bool
 roundInc hashgraph x =
-    let s = [y | y <- events hashgraph, stronglySee hashgraph x y, eventRound hashgraph y == parentRound hashgraph x]
+    let r = parentRound hashgraph x
+        s = [y | y <- events hashgraph, stronglySee hashgraph x y, eventRound hashgraph y == r]
     in manyCreators hashgraph s
 
+witness :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Bool
+witness hashgraph x =
+    let p = selfParent x
+    in  isNothing p ||
+        maybe False (\y -> eventRound hashgraph x > eventRound hashgraph y) p
+
+diff :: (Eq d, Eq t, Eq i, Eq s, Integral n) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> n
+diff hashgraph x y = eventRound hashgraph x - eventRound hashgraph y
+
 -- All of these are out of date and need to be updated, otherwise it won't compile.
--- witness :: Hashgraph -> Event d h t i s -> Bool
--- diff :: (Integral n) => Hashgraph -> Event d h t i s -> Event d h t i s -> n
 -- votes :: (Integral n) => Hashgraph -> Event d h t i s -> Event d h t i s -> Bool -> n
 -- fractTrue :: (Floating f) => Hashgraph -> Event d h t i s -> Event d h t i s -> f
 -- decide :: Hashgraph -> Event d h t i s -> Event d h t i s -> Bool
