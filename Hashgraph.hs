@@ -1,6 +1,7 @@
 -- ｗｈｅｎ   ｉｃｏ？
 import Data.Maybe
 import Data.List
+import Data.Ix
 
 data Event d t i s = Event { payload :: d, parents :: (Maybe (Event d t i s), Maybe (Event d t i s)), time :: t, creator :: i, sig :: s} deriving (Show, Eq)
 
@@ -75,12 +76,49 @@ witness hashgraph x =
 diff :: (Eq d, Eq t, Eq i, Eq s, Integral n) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> n
 diff hashgraph x y = eventRound hashgraph x - eventRound hashgraph y
 
+votes :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> Bool -> Int
+votes hashgraph x y v =
+    length [ z | z <- events hashgraph,
+        diff hashgraph x z == 1,
+        witness hashgraph z,
+        stronglySee hashgraph x z,
+        vote hashgraph z y == v
+    ]
+
+fractTrue :: (Eq d, Eq t, Eq i, Eq s, Floating f) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> f
+fractTrue hashgraph x y = (fromIntegral (votes hashgraph x y True))/(fromIntegral (votes hashgraph x y True + votes hashgraph x y False))
+
+decide :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> Bool
+-- (selfParent(x) 6 = ∅ ∧ decide(selfParent(x), y)) ∨(∧ witness(x) ∧ witness(y) ∧ diff(x, y) > 1 ∧ (diff(x, y) mod c > 0) ∧ (∃v ∈ B, votes(x, y, v) > (2n/3) )))
+decide hashgraph x y =
+    maybe False (\x' ->
+        decide hashgraph x' y ||
+        (
+            witness hashgraph x &&
+            witness hashgraph y &&
+            diff hashgraph x y > 1 &&
+            ((diff hashgraph x y) `mod` 10) > 0 &&
+            (
+                (fromIntegral (votes hashgraph x y False)) > (supermajority hashgraph) ||
+                (fromIntegral (votes hashgraph x y True)) > (supermajority hashgraph)
+            )
+        )
+    ) (selfParent x)
+
+copyVote :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> Bool
+copyVote hashgraph x y =
+    maybe (not (witness hashgraph x)) (\x' -> decide hashgraph x' y) (selfParent x)
+
+vote :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> Bool
+vote hashgraph x y
+    | not (witness hashgraph x) = vote hashgraph (fromJust (selfParent x)) y
+    | witness hashgraph x &&
+      (((diff hashgraph x y) `mod` 10) == 0) &&
+      fractTrue hashgraph x y >= 1/3 &&
+      fractTrue hashgraph x y <= 2/3 = True -- THIS IS SUPPOSED TO BE A COIN ROUND (but hashing is too much work rn lol)
+    | otherwise = fractTrue hashgraph x y >= (1/2)
+
 -- All of these are out of date and need to be updated, otherwise it won't compile.
--- votes :: (Integral n) => Hashgraph -> Event d h t i s -> Event d h t i s -> Bool -> n
--- fractTrue :: (Floating f) => Hashgraph -> Event d h t i s -> Event d h t i s -> f
--- decide :: Hashgraph -> Event d h t i s -> Event d h t i s -> Bool
--- copyVote :: Hashgraph -> Event d h t i s -> Event d h t i s -> Bool
--- vote :: Hashgraph -> Event d h t i s -> Event d h t i s -> Bool
 -- famous :: Event d h t i s -> Bool
 -- uniqueFamous :: Hashgraph -> Event d h t i s -> Bool
 -- roundsDecided :: (Integral n) => Hashgraph -> n -> Bool
