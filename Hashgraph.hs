@@ -118,8 +118,11 @@ vote hashgraph x y
       fractTrue hashgraph x y <= 2/3 = True -- THIS IS SUPPOSED TO BE A COIN ROUND (but hashing is too much work rn lol)
     | otherwise = fractTrue hashgraph x y >= (1/2)
 
+famous :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Bool
+famous hashgraph x =
+    not (null (filter (\y -> decide hashgraph y x && vote hashgraph y x) (events hashgraph)))
+
 -- All of these are out of date and need to be updated, otherwise it won't compile.
--- famous :: Event d h t i s -> Bool
 -- uniqueFamous :: Hashgraph -> Event d h t i s -> Bool
 -- roundsDecided :: (Integral n) => Hashgraph -> n -> Bool
 -- roundRecieved :: (Integral n) => Hashgraph -> Event d h t i s -> n
