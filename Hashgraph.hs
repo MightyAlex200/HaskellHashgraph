@@ -69,9 +69,7 @@ roundInc hashgraph x =
 
 witness :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Bool
 witness hashgraph x =
-    let p = selfParent x
-    in  isNothing p ||
-        maybe False (\y -> eventRound hashgraph x > eventRound hashgraph y) p
+    maybe True (\y -> eventRound hashgraph x > eventRound hashgraph y) (selfParent x)
 
 diff :: (Eq d, Eq t, Eq i, Eq s, Integral n) => Hashgraph d t i s -> Event d t i s -> Event d t i s -> n
 diff hashgraph x y = eventRound hashgraph x - eventRound hashgraph y
