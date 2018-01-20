@@ -120,8 +120,15 @@ famous :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Bool
 famous hashgraph x =
     not (null (filter (\y -> decide hashgraph y x && vote hashgraph y x) (events hashgraph)))
 
+uniqueFamous :: (Eq d, Eq t, Eq i, Eq s) => Hashgraph d t i s -> Event d t i s -> Bool
+uniqueFamous hashgraph x =
+    famous hashgraph x &&
+    null [y | y <- events hashgraph, x /= y, creator x == creator y, eventRound hashgraph x == eventRound hashgraph y, famous hashgraph y]
+
+roundsDecided :: (Eq d, Eq t, Eq i, Eq s, Integral n) => Hashgraph d t i s -> n -> Bool
+roundsDecided hashgraph r =
+    all (\x -> eventRound hashgraph x <= r && witness hashgraph x) (events hashgraph)
+
 -- All of these are out of date and need to be updated, otherwise it won't compile.
--- uniqueFamous :: Hashgraph -> Event d h t i s -> Bool
--- roundsDecided :: (Integral n) => Hashgraph -> n -> Bool
 -- roundRecieved :: (Integral n) => Hashgraph -> Event d h t i s -> n
 -- timeRecieved :: (Ord t) => Hashgraph -> Event d h t i s -> t
