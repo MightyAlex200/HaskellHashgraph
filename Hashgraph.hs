@@ -7,6 +7,8 @@ data Event d t i s = Event { payload :: d, parents :: (Maybe (Event d t i s), Ma
 
 data Hashgraph d t i s = Hashgraph { events :: [Event d t i s], population :: Int } deriving (Show)
 
+median xs = (sort xs) !! ((length xs) `div` 2)
+
 tupleToList :: (a, a) -> [a]
 tupleToList (x, y) = [x, y]
 
@@ -129,6 +131,21 @@ roundsDecided :: (Eq d, Eq t, Eq i, Eq s, Integral n) => Hashgraph d t i s -> n 
 roundsDecided hashgraph r =
     all (\x -> eventRound hashgraph x <= r && witness hashgraph x) (events hashgraph)
 
--- All of these are out of date and need to be updated, otherwise it won't compile.
--- roundRecieved :: (Integral n) => Hashgraph -> Event d h t i s -> n
--- timeRecieved :: (Ord t) => Hashgraph -> Event d h t i s -> t
+roundReceived :: (Eq d, Eq t, Eq i, Eq s, Integral n) => Hashgraph d t i s -> Event d t i s -> n
+roundReceived hashgraph x =
+    head [r | r <- [1..], roundsDecided hashgraph r, all (\y -> eventRound hashgraph y == r && uniqueFamous hashgraph y) (events hashgraph)]
+
+timeReceived :: (Eq d, Eq t, Eq i, Eq s, Ord t) => Hashgraph d t i s -> Event d t i s -> t
+timeReceived hashgraph x =
+    median [time y | y <- events hashgraph, 
+        ancestor y x, 
+        not (null ([z | z <- events hashgraph, 
+            eventRound hashgraph z == roundReceived hashgraph x, 
+            uniqueFamous hashgraph z, 
+            selfAncestor z y
+        ])),
+        null ([w | w <- events hashgraph,
+            selfAncestor y w,
+            ancestor w x
+        ])
+    ]
